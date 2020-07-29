@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import json
 import unittest
 from unittest.mock import patch
@@ -22,9 +21,9 @@ from unittest.mock import patch
 from airflow.models import Connection
 
 try:
-    from airflow.providers.yandex.hooks.yandexcloud_dataproc import DataprocHook
-
     import yandexcloud
+
+    from airflow.providers.yandex.hooks.yandexcloud_dataproc import DataprocHook
 except ImportError:
     yandexcloud = None
 
@@ -63,7 +62,7 @@ SSH_PUBLIC_KEYS = [
 HAS_CREDENTIALS = OAUTH_TOKEN != 'my_oauth_token'
 
 
-@unittest.skipIf(yandexcloud is None, 'Skipping Yadnex.Cloud hook test: no yandexcloud module')
+@unittest.skipIf(yandexcloud is None, 'Skipping Yandex.Cloud hook test: no yandexcloud module')
 class TestYandexCloudDataprocHook(unittest.TestCase):
 
     def _init_hook(self):

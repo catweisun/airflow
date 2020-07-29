@@ -18,7 +18,7 @@
 """
 This module contains a Google Cloud Bigtable Hook.
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence, Union
 
 from google.cloud.bigtable import Client
 from google.cloud.bigtable.cluster import Cluster
@@ -39,8 +39,17 @@ class BigtableHook(GoogleBaseHook):
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(self, gcp_conn_id: str = 'google_cloud_default', delegate_to: Optional[str] = None) -> None:
-        super().__init__(gcp_conn_id, delegate_to)
+    def __init__(
+        self,
+        gcp_conn_id: str = "google_cloud_default",
+        delegate_to: Optional[str] = None,
+        impersonation_chain: Optional[Union[str, Sequence[str]]] = None,
+    ) -> None:
+        super().__init__(
+            gcp_conn_id=gcp_conn_id,
+            delegate_to=delegate_to,
+            impersonation_chain=impersonation_chain,
+        )
         self._client = None
 
     def _get_client(self, project_id: str):
@@ -54,7 +63,7 @@ class BigtableHook(GoogleBaseHook):
         return self._client
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def get_instance(self, instance_id: str, project_id: Optional[str] = None) -> Instance:
+    def get_instance(self, instance_id: str, project_id: str) -> Instance:
         """
         Retrieves and returns the specified Cloud Bigtable instance if it exists.
         Otherwise, returns None.
@@ -66,16 +75,13 @@ class BigtableHook(GoogleBaseHook):
             the default project_id from the GCP connection is used.
         :type project_id: str
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
-
         instance = self._get_client(project_id=project_id).instance(instance_id)
         if not instance.exists():
             return None
         return instance
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def delete_instance(self, instance_id: str, project_id: Optional[str] = None) -> None:
+    def delete_instance(self, instance_id: str, project_id: str) -> None:
         """
         Deletes the specified Cloud Bigtable instance.
         Raises google.api_core.exceptions.NotFound if the Cloud Bigtable instance does
@@ -88,14 +94,12 @@ class BigtableHook(GoogleBaseHook):
         :param instance_id: The ID of the Cloud Bigtable instance.
         :type instance_id: str
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         instance = self.get_instance(instance_id=instance_id, project_id=project_id)
         if instance:
             instance.delete()
         else:
-            self.log.info("The instance '%s' does not exist in project '%s'. Exiting", instance_id,
-                          project_id)
+            self.log.warning("The instance '%s' does not exist in project '%s'. Exiting",
+                             instance_id, project_id)
 
     @GoogleBaseHook.fallback_to_default_project_id
     def create_instance(
@@ -103,7 +107,7 @@ class BigtableHook(GoogleBaseHook):
         instance_id: str,
         main_cluster_id: str,
         main_cluster_zone: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         replica_cluster_id: Optional[str] = None,
         replica_cluster_zone: Optional[str] = None,
         instance_display_name: Optional[str] = None,
@@ -148,8 +152,6 @@ class BigtableHook(GoogleBaseHook):
         :param timeout: (optional) timeout (in seconds) for instance creation.
                         If None is not specified, Operator will wait indefinitely.
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         cluster_storage_type = enums.StorageType(cluster_storage_type)
         instance_type = enums.Instance.Type(instance_type)
 
@@ -213,7 +215,7 @@ class BigtableHook(GoogleBaseHook):
         table.create(initial_split_keys, column_families)
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def delete_table(self, instance_id: str, table_id: str, project_id: Optional[str] = None) -> None:
+    def delete_table(self, instance_id: str, table_id: str, project_id: str) -> None:
         """
         Deletes the specified table in Cloud Bigtable.
         Raises google.api_core.exceptions.NotFound if the table does not exist.
@@ -227,8 +229,6 @@ class BigtableHook(GoogleBaseHook):
             BigTable exists. If set to None or missing,
             the default project_id from the GCP connection is used.
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         table = self.get_instance(instance_id=instance_id, project_id=project_id).table(table_id=table_id)
         table.delete()
 

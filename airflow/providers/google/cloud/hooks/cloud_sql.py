@@ -34,7 +34,7 @@ import subprocess
 import time
 import uuid
 from subprocess import PIPE, Popen
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 from urllib.parse import quote_plus
 
 import requests
@@ -80,10 +80,15 @@ class CloudSQLHook(GoogleBaseHook):
     def __init__(
         self,
         api_version: str,
-        gcp_conn_id: str = 'google_cloud_default',
-        delegate_to: Optional[str] = None
+        gcp_conn_id: str = "google_cloud_default",
+        delegate_to: Optional[str] = None,
+        impersonation_chain: Optional[Union[str, Sequence[str]]] = None,
     ) -> None:
-        super().__init__(gcp_conn_id, delegate_to)
+        super().__init__(
+            gcp_conn_id=gcp_conn_id,
+            delegate_to=delegate_to,
+            impersonation_chain=impersonation_chain,
+        )
         self.api_version = api_version
         self._conn = None
 
@@ -101,7 +106,7 @@ class CloudSQLHook(GoogleBaseHook):
         return self._conn
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def get_instance(self, instance: str, project_id: Optional[str] = None) -> Dict:
+    def get_instance(self, instance: str, project_id: str) -> Dict:
         """
         Retrieves a resource containing information about a Cloud SQL instance.
 
@@ -120,7 +125,7 @@ class CloudSQLHook(GoogleBaseHook):
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def create_instance(self, body: Dict, project_id: Optional[str] = None) -> None:
+    def create_instance(self, body: Dict, project_id: str) -> None:
         """
         Creates a new Cloud SQL instance.
 
@@ -137,12 +142,12 @@ class CloudSQLHook(GoogleBaseHook):
             body=body
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def patch_instance(self, body: Dict, instance: str, project_id: Optional[str] = None) -> None:
+    def patch_instance(self, body: Dict, instance: str, project_id: str) -> None:
         """
         Updates settings of a Cloud SQL instance.
 
@@ -165,12 +170,12 @@ class CloudSQLHook(GoogleBaseHook):
             body=body
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def delete_instance(self, instance: str, project_id: Optional[str] = None) -> None:
+    def delete_instance(self, instance: str, project_id: str) -> None:
         """
         Deletes a Cloud SQL instance.
 
@@ -186,11 +191,11 @@ class CloudSQLHook(GoogleBaseHook):
             instance=instance,
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def get_database(self, instance: str, database: str, project_id: Optional[str] = None) -> Dict:
+    def get_database(self, instance: str, database: str, project_id: str) -> Dict:
         """
         Retrieves a database resource from a Cloud SQL instance.
 
@@ -213,7 +218,7 @@ class CloudSQLHook(GoogleBaseHook):
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def create_database(self, instance: str, body: Dict, project_id: Optional[str] = None) -> None:
+    def create_database(self, instance: str, body: Dict, project_id: str) -> None:
         """
         Creates a new database inside a Cloud SQL instance.
 
@@ -233,7 +238,7 @@ class CloudSQLHook(GoogleBaseHook):
             body=body
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
@@ -243,7 +248,7 @@ class CloudSQLHook(GoogleBaseHook):
         instance: str,
         database: str,
         body: Dict,
-        project_id: Optional[str] = None
+        project_id: str,
     ) -> None:
         """
         Updates a database resource inside a Cloud SQL instance.
@@ -270,12 +275,12 @@ class CloudSQLHook(GoogleBaseHook):
             body=body
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def delete_database(self, instance: str, database: str, project_id: Optional[str] = None) -> None:
+    def delete_database(self, instance: str, database: str, project_id: str) -> None:
         """
         Deletes a database from a Cloud SQL instance.
 
@@ -294,12 +299,12 @@ class CloudSQLHook(GoogleBaseHook):
             database=database
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
     @GoogleBaseHook.operation_in_progress_retry()
-    def export_instance(self, instance: str, body: Dict, project_id: Optional[str] = None) -> None:
+    def export_instance(self, instance: str, body: Dict, project_id: str) -> None:
         """
         Exports data from a Cloud SQL instance to a Cloud Storage bucket as a SQL dump
         or CSV file.
@@ -321,11 +326,11 @@ class CloudSQLHook(GoogleBaseHook):
             body=body
         ).execute(num_retries=self.num_retries)
         operation_name = response["name"]
-        self._wait_for_operation_to_complete(project_id=project_id,  # type:ignore
+        self._wait_for_operation_to_complete(project_id=project_id,
                                              operation_name=operation_name)
 
     @GoogleBaseHook.fallback_to_default_project_id
-    def import_instance(self, instance: str, body: Dict, project_id: Optional[str] = None) -> None:
+    def import_instance(self, instance: str, body: Dict, project_id: str) -> None:
         """
         Imports data into a Cloud SQL instance from a SQL dump or CSV file in
         Cloud Storage.
@@ -348,7 +353,7 @@ class CloudSQLHook(GoogleBaseHook):
                 body=body
             ).execute(num_retries=self.num_retries)
             operation_name = response["name"]
-            self._wait_for_operation_to_complete(project_id=project_id,  # type: ignore
+            self._wait_for_operation_to_complete(project_id=project_id,
                                                  operation_name=operation_name)
         except HttpError as ex:
             raise AirflowException(
@@ -366,8 +371,6 @@ class CloudSQLHook(GoogleBaseHook):
         :type operation_name: str
         :return: None
         """
-        if not project_id:
-            raise ValueError("The project_id should be set")
         service = self.get_conn()
         while True:
             operation_response = service.operations().get(  # noqa # pylint: disable=no-member
@@ -563,7 +566,8 @@ class CloudSqlProxyRunner(LoggingMixin):
                                            stdin=PIPE, stdout=PIPE, stderr=PIPE)
             self.log.info("The pid of cloud_sql_proxy: %s", self.sql_proxy_process.pid)
             while True:
-                line = self.sql_proxy_process.stderr.readline().decode('utf-8')
+                line = self.sql_proxy_process.stderr.readline().decode('utf-8') \
+                    if self.sql_proxy_process.stderr else ""
                 return_code = self.sql_proxy_process.poll()
                 if line == '' and return_code is not None:
                     self.sql_proxy_process = None
@@ -934,10 +938,9 @@ class CloudSQLDatabaseHook(BaseHook):
         Create Connection object, according to whether it uses proxy, TCP, UNIX sockets, SSL.
         Connection ID will be randomly generated.
         """
-        connection = Connection(conn_id=self.db_conn_id)
         uri = self._generate_connection_uri()
+        connection = Connection(conn_id=self.db_conn_id, uri=uri)
         self.log.info("Creating connection %s", self.db_conn_id)
-        connection.parse_from_uri(uri)
         return connection
 
     def get_sqlproxy_runner(self) -> CloudSqlProxyRunner:
@@ -981,7 +984,7 @@ class CloudSQLDatabaseHook(BaseHook):
                 raise ValueError("The db_hook should be set")
             if not isinstance(self.db_hook, PostgresHook):
                 raise ValueError(f"The db_hook should be PostrgresHook and is {type(self.db_hook)}")
-            conn = getattr(self.db_hook, 'conn')  # type: ignore
+            conn = getattr(self.db_hook, 'conn')
             if conn and conn.notices:
                 for output in self.db_hook.conn.notices:
                     self.log.info(output)

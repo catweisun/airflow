@@ -17,7 +17,6 @@
 # under the License.
 
 """Example DAG demonstrating the usage of the PythonOperator."""
-
 import time
 from pprint import pprint
 
@@ -27,13 +26,13 @@ from airflow.utils.dates import days_ago
 
 args = {
     'owner': 'airflow',
-    'start_date': days_ago(2),
 }
 
 dag = DAG(
     dag_id='example_python_operator',
     default_args=args,
     schedule_interval=None,
+    start_date=days_ago(2),
     tags=['example']
 )
 
@@ -80,8 +79,9 @@ def callable_virtualenv():
     Importing at the module level ensures that it will not attempt to import the
     library before it is installed.
     """
-    from colorama import Fore, Back, Style
     from time import sleep
+
+    from colorama import Back, Fore, Style
     print(Fore.RED + 'some red text')
     print(Back.GREEN + 'and with a green background')
     print(Style.DIM + 'and in dim text')

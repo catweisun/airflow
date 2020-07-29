@@ -25,7 +25,7 @@ from airflow.models import Connection
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 try:
-    from moto import mock_emr, mock_dynamodb2, mock_sts, mock_iam
+    from moto import mock_dynamodb2, mock_emr, mock_iam, mock_sts
 except ImportError:
     mock_emr = None
     mock_dynamodb2 = None
@@ -209,6 +209,8 @@ class TestAwsBaseHook(unittest.TestCase):
         expect_arn = conn.get_role(RoleName='test-role').get('Role').get('Arn')
         self.assertEqual(arn, expect_arn)
 
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_use_default_boto3_behaviour_without_conn_id(self):
+        for conn_id in (None, ''):
+            hook = AwsBaseHook(aws_conn_id=conn_id, client_type='s3')
+            # should cause no exception
+            hook.get_client_type('s3')

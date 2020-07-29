@@ -28,7 +28,7 @@ import shutil
 from functools import wraps
 from inspect import signature
 from tempfile import NamedTemporaryFile
-from typing import Optional
+from typing import Callable, Optional, TypeVar, cast
 from urllib.parse import urlparse
 
 from botocore.exceptions import ClientError
@@ -37,8 +37,10 @@ from airflow.exceptions import AirflowException
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 from airflow.utils.helpers import chunks
 
+T = TypeVar("T", bound=Callable)  # pylint: disable=invalid-name
 
-def provide_bucket_name(func):
+
+def provide_bucket_name(func: T) -> T:
     """
     Function decorator that provides a bucket name taken from the connection
     in case no bucket name has been passed to the function.
@@ -59,10 +61,10 @@ def provide_bucket_name(func):
 
         return func(*bound_args.args, **bound_args.kwargs)
 
-    return wrapper
+    return cast(T, wrapper)
 
 
-def unify_bucket_name_and_key(func):
+def unify_bucket_name_and_key(func: T) -> T:
     """
     Function decorator that unifies bucket name and key taken from the key
     in case no bucket name and at least a key has been passed to the function.
@@ -88,7 +90,7 @@ def unify_bucket_name_and_key(func):
 
         return func(*bound_args.args, **bound_args.kwargs)
 
-    return wrapper
+    return cast(T, wrapper)
 
 
 class S3Hook(AwsBaseHook):
@@ -139,7 +141,7 @@ class S3Hook(AwsBaseHook):
             self.get_conn().head_bucket(Bucket=bucket_name)
             return True
         except ClientError as e:
-            self.log.info(e.response["Error"]["Message"])
+            self.log.error(e.response["Error"]["Message"])
             return False
 
     @provide_bucket_name
@@ -297,7 +299,7 @@ class S3Hook(AwsBaseHook):
             self.get_conn().head_object(Bucket=bucket_name, Key=key)
             return True
         except ClientError as e:
-            self.log.info(e.response["Error"]["Message"])
+            self.log.error(e.response["Error"]["Message"])
             return False
 
     @provide_bucket_name
@@ -465,8 +467,9 @@ class S3Hook(AwsBaseHook):
         if encrypt:
             extra_args['ServerSideEncryption'] = "AES256"
         if gzip:
-            filename_gz = filename.name + '.gz'
-            with open(filename.name, 'rb') as f_in:
+            filename_gz = ''
+            with open(filename, 'rb') as f_in:
+                filename_gz = f_in.name + '.gz'
                 with gz.open(filename_gz, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
                     filename = filename_gz
@@ -513,6 +516,7 @@ class S3Hook(AwsBaseHook):
         bytes_data = string_data.encode(encoding)
         file_obj = io.BytesIO(bytes_data)
         self._upload_file_obj(file_obj, key, bucket_name, replace, encrypt, acl_policy)
+        file_obj.close()
 
     @provide_bucket_name
     @unify_bucket_name_and_key
@@ -547,6 +551,7 @@ class S3Hook(AwsBaseHook):
         """
         file_obj = io.BytesIO(bytes_data)
         self._upload_file_obj(file_obj, key, bucket_name, replace, encrypt, acl_policy)
+        file_obj.close()
 
     @provide_bucket_name
     @unify_bucket_name_and_key
@@ -663,6 +668,26 @@ class S3Hook(AwsBaseHook):
                                                ACL=acl_policy)
         return response
 
+    @provide_bucket_name
+    def delete_bucket(self, bucket_name: str, force_delete: bool = False) -> None:
+        """
+        To delete s3 bucket, delete all s3 bucket objects and then delete the bucket.
+
+        :param bucket_name: Bucket name
+        :type bucket_name: str
+        :param force_delete: Enable this to delete bucket even if not empty
+        :type force_delete: bool
+        :return: None
+        :rtype: None
+        """
+        if force_delete:
+            bucket_keys = self.list_keys(bucket_name=bucket_name)
+            if bucket_keys:
+                self.delete_objects(bucket=bucket_name, keys=bucket_keys)
+        self.conn.delete_bucket(
+            Bucket=bucket_name
+        )
+
     def delete_objects(self, bucket, keys):
         """
         Delete keys from the bucket.
@@ -729,3 +754,32 @@ class S3Hook(AwsBaseHook):
             s3_obj.download_fileobj(local_tmp_file)
 
         return local_tmp_file.name
+
+    def generate_presigned_url(self, client_method, params=None, expires_in=3600, http_method=None):
+        """
+        Generate a presigned url given a client, its method, and arguments
+
+        :param client_method: The client method to presign for.
+        :type client_method: str
+        :param params: The parameters normally passed to ClientMethod.
+        :type params: dict
+        :param expires_in: The number of seconds the presigned url is valid for.
+            By default it expires in an hour (3600 seconds).
+        :type expires_in: int
+        :param http_method: The http method to use on the generated url.
+            By default, the http method is whatever is used in the method's model.
+        :type http_method: str
+        :return: The presigned url.
+        :rtype: str
+        """
+
+        s3_client = self.get_conn()
+        try:
+            return s3_client.generate_presigned_url(ClientMethod=client_method,
+                                                    Params=params,
+                                                    ExpiresIn=expires_in,
+                                                    HttpMethod=http_method)
+
+        except ClientError as e:
+            self.log.error(e.response["Error"]["Message"])
+            return None

@@ -28,13 +28,13 @@ from airflow.utils.dates import days_ago
 DEFAULT_ARGS = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': days_ago(2),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False
 }
 
-SPARK_TEST_STEPS = [
+# [START howto_operator_emr_automatic_steps_config]
+SPARK_STEPS = [
     {
         'Name': 'calculate_pi',
         'ActionOnFailure': 'CONTINUE',
@@ -51,17 +51,36 @@ SPARK_TEST_STEPS = [
 
 JOB_FLOW_OVERRIDES = {
     'Name': 'PiCalc',
-    'Steps': SPARK_TEST_STEPS
+    'ReleaseLabel': 'emr-5.29.0',
+    'Instances': {
+        'InstanceGroups': [
+            {
+                'Name': 'Master node',
+                'Market': 'SPOT',
+                'InstanceRole': 'MASTER',
+                'InstanceType': 'm1.medium',
+                'InstanceCount': 1,
+            }
+        ],
+        'KeepJobFlowAliveWhenNoSteps': False,
+        'TerminationProtected': False,
+    },
+    'Steps': SPARK_STEPS,
+    'JobFlowRole': 'EMR_EC2_DefaultRole',
+    'ServiceRole': 'EMR_DefaultRole',
 }
+# [END howto_operator_emr_automatic_steps_config]
 
 with DAG(
     dag_id='emr_job_flow_automatic_steps_dag',
     default_args=DEFAULT_ARGS,
     dagrun_timeout=timedelta(hours=2),
+    start_date=days_ago(2),
     schedule_interval='0 3 * * *',
     tags=['example'],
 ) as dag:
 
+    # [START howto_operator_emr_automatic_steps_tasks]
     job_flow_creator = EmrCreateJobFlowOperator(
         task_id='create_job_flow',
         job_flow_overrides=JOB_FLOW_OVERRIDES,
@@ -76,3 +95,4 @@ with DAG(
     )
 
     job_flow_creator >> job_sensor
+    # [END howto_operator_emr_automatic_steps_tasks]

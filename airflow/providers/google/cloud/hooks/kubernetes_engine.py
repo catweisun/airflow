@@ -22,7 +22,7 @@ This module contains a Google Kubernetes Engine Hook.
 
 import time
 import warnings
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Sequence, Union
 
 from google.api_core.exceptions import AlreadyExists, NotFound
 from google.api_core.gapic_v1.method import DEFAULT
@@ -49,12 +49,16 @@ class GKEHook(GoogleBaseHook):
 
     def __init__(
         self,
-        gcp_conn_id: str = 'google_cloud_default',
+        gcp_conn_id: str = "google_cloud_default",
         delegate_to: Optional[str] = None,
+        impersonation_chain: Optional[Union[str, Sequence[str]]] = None,
         location: Optional[str] = None
     ) -> None:
         super().__init__(
-            gcp_conn_id=gcp_conn_id, delegate_to=delegate_to)
+            gcp_conn_id=gcp_conn_id,
+            delegate_to=delegate_to,
+            impersonation_chain=impersonation_chain,
+        )
         self._client = None
         self.location = location
 
@@ -142,7 +146,7 @@ class GKEHook(GoogleBaseHook):
     def delete_cluster(
         self,
         name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Retry = DEFAULT,
         timeout: float = DEFAULT
     ) -> Optional[str]:
@@ -189,7 +193,7 @@ class GKEHook(GoogleBaseHook):
     def create_cluster(
         self,
         cluster: Union[Dict, Cluster],
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Retry = DEFAULT,
         timeout: float = DEFAULT
     ) -> str:
@@ -241,13 +245,13 @@ class GKEHook(GoogleBaseHook):
             return resource.target_link
         except AlreadyExists as error:
             self.log.info('Assuming Success: %s', error.message)
-            return self.get_cluster(name=cluster.name)
+            return self.get_cluster(name=cluster.name, project_id=project_id)
 
     @GoogleBaseHook.fallback_to_default_project_id
     def get_cluster(
         self,
         name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Retry = DEFAULT,
         timeout: float = DEFAULT
     ) -> Cluster:

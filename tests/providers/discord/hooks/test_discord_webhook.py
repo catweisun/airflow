@@ -50,6 +50,7 @@ class TestDiscordWebhookHook(unittest.TestCase):
         db.merge_conn(
             Connection(
                 conn_id='default-discord-webhook',
+                conn_type='http',
                 host='https://discordapp.com/api/',
                 extra='{"webhook_endpoint": "webhooks/00000/some-discord-token_000"}')
         )
@@ -107,7 +108,3 @@ class TestDiscordWebhookHook(unittest.TestCase):
         expected_message = 'Discord message length must be 2000 or fewer characters'
         with self.assertRaisesRegex(AirflowException, expected_message):
             hook._build_discord_payload()
-
-
-if __name__ == '__main__':
-    unittest.main()

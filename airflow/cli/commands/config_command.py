@@ -16,12 +16,37 @@
 # under the License.
 """Config sub-commands"""
 import io
+import sys
+
+import pygments
+from pygments.formatters.terminal import TerminalFormatter
+from pygments.lexers.configs import IniLexer
 
 from airflow.configuration import conf
+from airflow.utils.cli import should_use_colors
 
 
 def show_config(args):
     """Show current application configuration"""
     with io.StringIO() as output:
         conf.write(output)
-        print(output.getvalue())
+        code = output.getvalue()
+        if should_use_colors(args):
+            code = pygments.highlight(
+                code=code, formatter=TerminalFormatter(), lexer=IniLexer()
+            )
+        print(code)
+
+
+def get_value(args):
+    """Get one value from configuration"""
+    if not conf.has_section(args.section):
+        print(f'The section [{args.section}] is not found in config.', file=sys.stderr)
+        sys.exit(1)
+
+    if not conf.has_option(args.section, args.option):
+        print(f'The option [{args.section}/{args.option}] is not found in config.', file=sys.stderr)
+        sys.exit(1)
+
+    value = conf.get(args.section, args.option)
+    print(value)

@@ -72,7 +72,8 @@ class TestECSOperator(unittest.TestCase):
                     'securityGroups': ['sg-123abc'],
                     'subnets': ['subnet-123456ab']
                 }
-            }
+            },
+            'propagate_tags': 'TASK_DEFINITION'
         }
         self.ecs = ECSOperator(**self.ecs_operator_args, **kwargs)
         self.ecs.get_hook()
@@ -97,6 +98,7 @@ class TestECSOperator(unittest.TestCase):
         ['EC2', None],
         ['FARGATE', None],
         ['EC2', {'testTagKey': 'testTagValue'}],
+        ['', {'testTagKey': 'testTagValue'}],
     ])
     @mock.patch.object(ECSOperator, '_wait_for_task_ended')
     @mock.patch.object(ECSOperator, '_check_success_task')
@@ -111,6 +113,8 @@ class TestECSOperator(unittest.TestCase):
 
         self.aws_hook_mock.return_value.get_conn.assert_called_once()
         extend_args = {}
+        if launch_type:
+            extend_args['launchType'] = launch_type
         if launch_type == 'FARGATE':
             extend_args['platformVersion'] = 'LATEST'
         if tags:
@@ -118,7 +122,6 @@ class TestECSOperator(unittest.TestCase):
 
         client_mock.run_task.assert_called_once_with(
             cluster='c',
-            launchType=launch_type,
             overrides={},
             startedBy=mock.ANY,  # Can by 'airflow' or 'Airflow'
             taskDefinition='t',
@@ -135,6 +138,7 @@ class TestECSOperator(unittest.TestCase):
                     'subnets': ['subnet-123456ab']
                 }
             },
+            propagateTags='TASK_DEFINITION',
             **extend_args
         )
 
@@ -171,7 +175,8 @@ class TestECSOperator(unittest.TestCase):
                     'securityGroups': ['sg-123abc'],
                     'subnets': ['subnet-123456ab'],
                 }
-            }
+            },
+            propagateTags='TASK_DEFINITION'
         )
 
     def test_wait_end_tasks(self):
@@ -302,7 +307,3 @@ class TestECSOperator(unittest.TestCase):
         self.ecs._check_success_task()
         client_mock.describe_tasks.assert_called_once_with(
             cluster='c', tasks=['arn'])
-
-
-if __name__ == '__main__':
-    unittest.main()

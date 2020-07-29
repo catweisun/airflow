@@ -33,6 +33,7 @@ class TestGoogleDiscoveryApiHook(unittest.TestCase):
         db.merge_conn(
             models.Connection(
                 conn_id='google_test',
+                conn_type='google_cloud_platform',
                 host='google',
                 schema='refresh_token',
                 login='client_id',
@@ -142,7 +143,3 @@ class TestGoogleDiscoveryApiHook(unittest.TestCase):
             call(google_api_conn_client_sub_call, api_endpoint_name_parts[2] + '_next'),
             call()(google_api_conn_client_sub_call, google_api_conn_client_sub_call.execute.return_value)
         ])
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -41,14 +41,32 @@ class CloudTasksHook(GoogleBaseHook):
 
     :param gcp_conn_id: The connection ID to use when fetching connection info.
     :type gcp_conn_id: str
-    :param delegate_to: The account to impersonate, if any.
-        For this to work, the service account making the request must have
+    :param delegate_to: The account to impersonate using domain-wide delegation of authority,
+        if any. For this to work, the service account making the request must have
         domain-wide delegation enabled.
     :type delegate_to: str
+    :param impersonation_chain: Optional service account to impersonate using short-term
+        credentials, or chained list of accounts required to get the access_token
+        of the last account in the list, which will be impersonated in the request.
+        If set as a string, the account must grant the originating account
+        the Service Account Token Creator IAM role.
+        If set as a sequence, the identities from the list must grant
+        Service Account Token Creator IAM role to the directly preceding identity, with first
+        account from the list granting this role to the originating account.
+    :type impersonation_chain: Union[str, Sequence[str]]
     """
 
-    def __init__(self, gcp_conn_id="google_cloud_default", delegate_to=None):
-        super().__init__(gcp_conn_id, delegate_to)
+    def __init__(
+        self,
+        gcp_conn_id: str = "google_cloud_default",
+        delegate_to: Optional[str] = None,
+        impersonation_chain: Optional[Union[str, Sequence[str]]] = None,
+    ) -> None:
+        super().__init__(
+            gcp_conn_id=gcp_conn_id,
+            delegate_to=delegate_to,
+            impersonation_chain=impersonation_chain,
+        )
         self._client = None
 
     def get_conn(self):
@@ -70,7 +88,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         task_queue: Union[Dict, Queue],
-        project_id: Optional[str] = None,
+        project_id: str,
         queue_name: Optional[str] = None,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
@@ -84,7 +102,7 @@ class CloudTasksHook(GoogleBaseHook):
         :param task_queue: The task queue to create.
             Queue's name cannot be the same as an existing queue.
             If a dict is provided, it must be of the same form as the protobuf message Queue.
-        :type task_queue: dict or class google.cloud.tasks_v2.types.Queue
+        :type task_queue: dict or google.cloud.tasks_v2.types.Queue
         :param project_id: (Optional) The ID of the  GCP project that owns the Cloud Tasks.
             If set to None or missing, the default project_id from the GCP connection is used.
         :type project_id: str
@@ -126,7 +144,7 @@ class CloudTasksHook(GoogleBaseHook):
     def update_queue(
         self,
         task_queue: Queue,
-        project_id: Optional[str] = None,
+        project_id: str,
         location: Optional[str] = None,
         queue_name: Optional[str] = None,
         update_mask: Optional[FieldMask] = None,
@@ -140,7 +158,7 @@ class CloudTasksHook(GoogleBaseHook):
         :param task_queue: The task queue to update.
             This method creates the queue if it does not exist and updates the queue if
             it does exist. The queue's name must be specified.
-        :type task_queue: dict or class google.cloud.tasks_v2.types.Queue
+        :type task_queue: dict or google.cloud.tasks_v2.types.Queue
         :param project_id: (Optional) The ID of the  GCP project that owns the Cloud Tasks.
             If set to None or missing, the default project_id from the GCP connection is used.
         :type project_id: str
@@ -153,7 +171,7 @@ class CloudTasksHook(GoogleBaseHook):
         :param update_mask: A mast used to specify which fields of the queue are being updated.
             If empty, then all fields will be updated.
             If a dict is provided, it must be of the same form as the protobuf message.
-        :type update_mask: dict or class google.cloud.tasks_v2.types.FieldMask
+        :type update_mask: dict or google.cloud.tasks_v2.types.FieldMask
         :param retry: (Optional) A retry object used to retry requests.
             If None is specified, requests will not be retried.
         :type retry: google.api_core.retry.Retry
@@ -189,7 +207,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -227,7 +245,7 @@ class CloudTasksHook(GoogleBaseHook):
     def list_queues(
         self,
         location: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         results_filter: Optional[str] = None,
         page_size: Optional[int] = None,
         retry: Optional[Retry] = None,
@@ -277,7 +295,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -315,7 +333,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -354,7 +372,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -393,7 +411,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -433,7 +451,7 @@ class CloudTasksHook(GoogleBaseHook):
         location: str,
         queue_name: str,
         task: Union[Dict, Task],
-        project_id: Optional[str] = None,
+        project_id: str,
         task_name: Optional[str] = None,
         response_view: Optional[enums.Task.View] = None,
         retry: Optional[Retry] = None,
@@ -449,7 +467,7 @@ class CloudTasksHook(GoogleBaseHook):
         :type queue_name: str
         :param task: The task to add.
             If a dict is provided, it must be of the same form as the protobuf message Task.
-        :type task: dict or class google.cloud.tasks_v2.types.Task
+        :type task: dict or google.cloud.tasks_v2.types.Task
         :param project_id: (Optional) The ID of the  GCP project that owns the Cloud Tasks.
             If set to None or missing, the default project_id from the GCP connection is used.
         :type project_id: str
@@ -499,7 +517,7 @@ class CloudTasksHook(GoogleBaseHook):
         location: str,
         queue_name: str,
         task_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         response_view: Optional[enums.Task.View] = None,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
@@ -548,7 +566,7 @@ class CloudTasksHook(GoogleBaseHook):
         self,
         location: str,
         queue_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         response_view: Optional[enums.Task.View] = None,
         page_size: Optional[int] = None,
         retry: Optional[Retry] = None,
@@ -601,7 +619,7 @@ class CloudTasksHook(GoogleBaseHook):
         location: str,
         queue_name: str,
         task_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None
@@ -642,7 +660,7 @@ class CloudTasksHook(GoogleBaseHook):
         location: str,
         queue_name: str,
         task_name: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         response_view: Optional[enums.Task.View] = None,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,

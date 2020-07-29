@@ -28,7 +28,8 @@ Authenticating to AWS
 
 Authentication may be performed using any of the `boto3 options <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#configuring-credentials>`_. Alternatively, one can pass credentials in as a Connection initialisation parameter.
 
-To use IAM instance profile, create an "empty" connection (i.e. one with no Login or Password specified).
+To use IAM instance profile, create an "empty" connection (i.e. one with no Login or Password specified, or
+``aws://``).
 
 Default Connection IDs
 -----------------------
@@ -59,8 +60,6 @@ Extra (optional)
     Specify the extra parameters (as json dictionary) that can be used in AWS
     connection. The following parameters are all optional:
 
-    * ``aws_access_key_id``: Alternative to using the **Login** field.
-    * ``aws_secret_access_key``: Alternative to using the **Password** field.
     * ``aws_session_token``: AWS session token used for the initial connection if you use external credentials. You are responsible for renewing these.
 
     * ``role_arn``: If specified, then an *assume_role* will be done to this role.
@@ -74,6 +73,27 @@ Extra (optional)
 
     * ``config_kwargs``: Additional ``kwargs`` used to construct a ``botocore.config.Config`` passed to *boto3.client* and *boto3.resource*.
     * ``session_kwargs``: Additional ``kwargs`` passed to *boto3.session.Session*.
+
+If you are configuing the connection via a URI, ensure that all components of the URI are URL-encoded.
+
+Examples
+--------
+
+**Using instance profile**:
+  .. code-block:: bash
+
+    export AIRFLOW_CONN_AWS_DEFAULT=aws://
+
+  This will use boto's default credential look-up chain (the profile named "default" from the ~/.boto/ config files, and instance profile when running inside AWS)
+
+**With a AWS IAM key pair**:
+  .. code-block:: bash
+
+    export AIRFLOW_CONN_AWS_DEFAULT=aws://AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI%2FK7MDENG%2FbPxRfiCYEXAMPLEKEY@
+
+  Note here, that the secret access key has been URL-encoded (changing ``/`` to ``%2F``), and also the
+  trailing ``@`` (without which, it is treated as ``<host>:<port>`` and will not work)
+
 
 Examples for the **Extra** field
 --------------------------------
@@ -140,8 +160,9 @@ This assumes all other Connection fields eg **Login** are empty.
       "assume_role_kwargs": { "something":"something" }
     }
 
-AssumeRoleWithSAML
-    The following settings may be used within the ``assume_role_with_saml`` container in Extra.
+
+The following settings may be used within the ``assume_role_with_saml`` container in Extra.
+
     * ``principal_arn``: The ARN of the SAML provider created in IAM that describes the identity provider.
     * ``idp_url``: The URL to your IDP endpoint, which provides SAML Assertions.
     * ``idp_auth_method``: Specify "http_spegno_auth" to use the Python ``requests_gssapi`` library. This library is more up to date than ``requests_kerberos`` and is backward compatible. See ``requests_gssapi`` documentation on PyPi.

@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 from parameterized import parameterized
 
 from airflow.www import utils
+from airflow.www.utils import wrapped_markdown
 from tests.test_utils.config import conf_vars
 
 
@@ -40,6 +41,34 @@ class TestUtils(unittest.TestCase):
 
     def test_sensitive_variable_should_be_hidden_ic(self):
         self.assertTrue(utils.should_hide_value_for_key("GOOGLE_API_KEY"))
+
+    @parameterized.expand(
+        [
+            ('key', 'TRELLO_KEY', True),
+            ('key', 'TRELLO_API_KEY', True),
+            ('key', 'GITHUB_APIKEY', True),
+            ('key, token', 'TRELLO_TOKEN', True),
+            ('mysecretword, mysensitivekey', 'GITHUB_mysecretword', True),
+        ],
+    )
+    def test_sensitive_variable_fields_should_be_hidden(
+        self, sensitive_variable_fields, key, expected_result
+    ):
+        with conf_vars({('admin', 'sensitive_variable_fields'): str(sensitive_variable_fields)}):
+            self.assertEqual(expected_result, utils.should_hide_value_for_key(key))
+
+    @parameterized.expand(
+        [
+            (None, 'TRELLO_API', False),
+            ('token', 'TRELLO_KEY', False),
+            ('token, mysecretword', 'TRELLO_KEY', False)
+        ],
+    )
+    def test_normal_variable_fields_should_not_be_hidden(
+        self, sensitive_variable_fields, key, expected_result
+    ):
+        with conf_vars({('admin', 'sensitive_variable_fields'): str(sensitive_variable_fields)}):
+            self.assertEqual(expected_result, utils.should_hide_value_for_key(key))
 
     def check_generate_pages_html(self, current_page, total_pages,
                                   window=7, check_middle=False):
@@ -103,51 +132,18 @@ class TestUtils(unittest.TestCase):
         self.assertEqual('search=bash_',
                          utils.get_params(search='bash_'))
 
-    @parameterized.expand([
-        (True, False, ''),
-        (False, True, ''),
-        (True, True, 'showPaused=True'),
-        (False, False, 'showPaused=False'),
-        (None, True, ''),
-        (None, False, ''),
-    ])
-    def test_params_show_paused(self, show_paused, hide_by_default, expected_result):
-        with conf_vars({('webserver', 'hide_paused_dags_by_default'): str(hide_by_default)}):
-            self.assertEqual(expected_result,
-                             utils.get_params(showPaused=show_paused))
-
-    @parameterized.expand([
-        (True, False, True),
-        (False, True, True),
-        (True, True, False),
-        (False, False, False),
-        (None, True, True),
-        (None, False, True),
-    ])
-    def test_should_remove_show_paused_from_url_params(self, show_paused,
-                                                       hide_by_default, expected_result):
-        with conf_vars({('webserver', 'hide_paused_dags_by_default'): str(hide_by_default)}):
-
-            self.assertEqual(
-                expected_result,
-                utils._should_remove_show_paused_from_url_params(
-                    show_paused,
-                    hide_by_default
-                )
-            )
-
     def test_params_none_and_zero(self):
-        query_str = utils.get_params(a=0, b=None)
+        query_str = utils.get_params(a=0, b=None, c='true')
         # The order won't be consistent, but that doesn't affect behaviour of a browser
         pairs = list(sorted(query_str.split('&')))
-        self.assertListEqual(['a=0', 'b='], pairs)
+        self.assertListEqual(['a=0', 'c=true'], pairs)
 
     def test_params_all(self):
-        query = utils.get_params(showPaused=False, page=3, search='bash_')
+        query = utils.get_params(status='active', page=3, search='bash_')
         self.assertEqual(
             {'page': ['3'],
              'search': ['bash_'],
-             'showPaused': ['False']},
+             'status': ['active']},
             parse_qs(query)
         )
 
@@ -171,8 +167,8 @@ class TestUtils(unittest.TestCase):
 
     def test_task_instance_link(self):
 
-        from airflow.www.app import cached_appbuilder
-        with cached_appbuilder(testing=True).app.test_request_context():
+        from airflow.www.app import cached_app
+        with cached_app(testing=True).test_request_context():
             html = str(utils.task_instance_link({
                 'dag_id': '<a&1>',
                 'task_id': '<b2>',
@@ -185,8 +181,8 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn('<b2>', html)
 
     def test_dag_link(self):
-        from airflow.www.app import cached_appbuilder
-        with cached_appbuilder(testing=True).app.test_request_context():
+        from airflow.www.app import cached_app
+        with cached_app(testing=True).test_request_context():
             html = str(utils.dag_link({
                 'dag_id': '<a&1>',
                 'execution_date': datetime.now()
@@ -196,8 +192,8 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn('<a&1>', html)
 
     def test_dag_run_link(self):
-        from airflow.www.app import cached_appbuilder
-        with cached_appbuilder(testing=True).app.test_request_context():
+        from airflow.www.app import cached_app
+        with cached_app(testing=True).test_request_context():
             html = str(utils.dag_run_link({
                 'dag_id': '<a&1>',
                 'run_id': '<b2>',
@@ -234,3 +230,16 @@ class TestAttrRenderer(unittest.TestCase):
     def test_markdown_none(self):
         rendered = self.attr_renderer["python_callable"](None)
         self.assertEqual("", rendered)
+
+
+class TestWrappedMarkdown(unittest.TestCase):
+
+    def test_wrapped_markdown_with_docstring_curly_braces(self):
+        rendered = wrapped_markdown("{braces}", css_class="a_class")
+        self.assertEqual('<div class="rich_doc a_class" ><p>{braces}</p></div>', rendered)
+
+    def test_wrapped_markdown_with_some_markdown(self):
+        rendered = wrapped_markdown("*italic*\n**bold**\n", css_class="a_class")
+        self.assertEqual(
+            '''<div class="rich_doc a_class" ><p><em>italic</em>
+<strong>bold</strong></p></div>''', rendered)

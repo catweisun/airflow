@@ -18,6 +18,8 @@
 """Variable subcommands"""
 import json
 import os
+import sys
+from json import JSONDecodeError
 
 from airflow.models import Variable
 from airflow.utils import cli as cli_utils
@@ -34,12 +36,22 @@ def variables_list(args):
 def variables_get(args):
     """Displays variable by a given name"""
     try:
-        var = Variable.get(args.key,
-                           deserialize_json=args.json,
-                           default_var=args.default)
-        print(var)
-    except ValueError as e:
-        print(e)
+        if args.default is None:
+            var = Variable.get(
+                args.key,
+                deserialize_json=args.json
+            )
+            print(var)
+        else:
+            var = Variable.get(
+                args.key,
+                deserialize_json=args.json,
+                default_var=args.default
+            )
+            print(var)
+    except (ValueError, KeyError) as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
 
 
 @cli_utils.action_logging
@@ -75,7 +87,7 @@ def _import_helper(filepath):
 
     try:
         var_json = json.loads(data)
-    except Exception:  # pylint: disable=broad-except
+    except JSONDecodeError:
         print("Invalid variables file.")
     else:
         suc_count = fail_count = 0

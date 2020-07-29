@@ -73,11 +73,14 @@ class LocalTaskJob(BaseJob):
     def _execute(self):
         self.task_runner = get_task_runner(self)
 
+        # pylint: disable=unused-argument
         def signal_handler(signum, frame):
             """Setting kill signal handler"""
             self.log.error("Received SIGTERM. Terminating subprocesses")
             self.on_kill()
             raise AirflowException("LocalTaskJob received SIGTERM signal")
+
+        # pylint: enable=unused-argument
         signal.signal(signal.SIGTERM, signal_handler)
 
         if not self.task_instance.check_and_change_state_before_execution(
@@ -111,7 +114,7 @@ class LocalTaskJob(BaseJob):
                 time_since_last_heartbeat = (timezone.utcnow() - self.latest_heartbeat).total_seconds()
                 if time_since_last_heartbeat > heartbeat_time_limit:
                     Stats.incr('local_task_job_prolonged_heartbeat_failure', 1, 1)
-                    self.log.error("Heartbeat time limited exceeded!")
+                    self.log.error("Heartbeat time limit exceeded!")
                     raise AirflowException("Time since last heartbeat({:.2f}s) "
                                            "exceeded limit ({}s)."
                                            .format(time_since_last_heartbeat,
@@ -156,7 +159,7 @@ class LocalTaskJob(BaseJob):
         ):
             self.log.warning(
                 "State of this instance has been externally set to %s. "
-                "Taking the poison pill.",
+                "Terminating instance.",
                 ti.state
             )
             if ti.state == State.FAILED and ti.task.on_failure_callback:

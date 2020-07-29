@@ -50,8 +50,17 @@ class PubSubHook(GoogleBaseHook):
     the project embedded in the Connection referenced by gcp_conn_id.
     """
 
-    def __init__(self, gcp_conn_id: str = 'google_cloud_default', delegate_to: Optional[str] = None) -> None:
-        super().__init__(gcp_conn_id, delegate_to=delegate_to)
+    def __init__(
+        self,
+        gcp_conn_id: str = "google_cloud_default",
+        delegate_to: Optional[str] = None,
+        impersonation_chain: Optional[Union[str, Sequence[str]]] = None,
+    ) -> None:
+        super().__init__(
+            gcp_conn_id=gcp_conn_id,
+            delegate_to=delegate_to,
+            impersonation_chain=impersonation_chain,
+        )
         self._client = None
 
     def get_conn(self) -> PublisherClient:
@@ -86,7 +95,7 @@ class PubSubHook(GoogleBaseHook):
         self,
         topic: str,
         messages: List[Dict],
-        project_id: Optional[str] = None,
+        project_id: str,
     ) -> None:
         """
         Publishes messages to a Pub/Sub topic.
@@ -102,8 +111,6 @@ class PubSubHook(GoogleBaseHook):
             If set to None or missing, the default project_id from the GCP connection is used.
         :type project_id: str
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         self._validate_messages(messages)
 
         publisher = self.get_conn()
@@ -154,7 +161,7 @@ class PubSubHook(GoogleBaseHook):
     def create_topic(
         self,
         topic: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         fail_if_exists: bool = False,
         labels: Optional[Dict[str, str]] = None,
         message_storage_policy: Union[Dict, MessageStoragePolicy] = None,
@@ -199,8 +206,6 @@ class PubSubHook(GoogleBaseHook):
         :param metadata: (Optional) Additional metadata that is provided to the method.
         :type metadata: Sequence[Tuple[str, str]]]
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         publisher = self.get_conn()
         topic_path = PublisherClient.topic_path(project_id, topic)  # pylint: disable=no-member
 
@@ -233,7 +238,7 @@ class PubSubHook(GoogleBaseHook):
     def delete_topic(
         self,
         topic: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         fail_if_not_exists: bool = False,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
@@ -261,8 +266,6 @@ class PubSubHook(GoogleBaseHook):
         :param metadata: (Optional) Additional metadata that is provided to the method.
         :type metadata: Sequence[Tuple[str, str]]]
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         publisher = self.get_conn()
         topic_path = PublisherClient.topic_path(project_id, topic)  # pylint: disable=no-member
 
@@ -288,7 +291,7 @@ class PubSubHook(GoogleBaseHook):
     def create_subscription(
         self,
         topic: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         subscription: Optional[str] = None,
         subscription_project_id: Optional[str] = None,
         ack_deadline_secs: int = 10,
@@ -355,8 +358,6 @@ class PubSubHook(GoogleBaseHook):
             the ``subscription`` parameter is not supplied
         :rtype: str
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         subscriber = self.subscriber_client
 
         if not subscription:
@@ -400,7 +401,7 @@ class PubSubHook(GoogleBaseHook):
     def delete_subscription(
         self,
         subscription: str,
-        project_id: Optional[str] = None,
+        project_id: str,
         fail_if_not_exists: bool = False,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
@@ -427,8 +428,6 @@ class PubSubHook(GoogleBaseHook):
         :param metadata: (Optional) Additional metadata that is provided to the method.
         :type metadata: Sequence[Tuple[str, str]]]
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         subscriber = self.subscriber_client
         subscription_path = SubscriberClient.subscription_path(project_id, subscription)  # noqa E501 # pylint: disable=no-member,line-too-long
 
@@ -456,7 +455,7 @@ class PubSubHook(GoogleBaseHook):
         self,
         subscription: str,
         max_messages: int,
-        project_id: Optional[str] = None,
+        project_id: str,
         return_immediately: bool = False,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
@@ -492,8 +491,6 @@ class PubSubHook(GoogleBaseHook):
             the base64-encoded message content. See
             https://cloud.google.com/pubsub/docs/reference/rest/v1/projects.subscriptions/pull#ReceivedMessage
         """
-        if not project_id:
-            raise ValueError("Project ID should be set.")
         subscriber = self.subscriber_client
         subscription_path = SubscriberClient.subscription_path(project_id, subscription)  # noqa E501 # pylint: disable=no-member,line-too-long
 
@@ -518,9 +515,9 @@ class PubSubHook(GoogleBaseHook):
     def acknowledge(
         self,
         subscription: str,
+        project_id: str,
         ack_ids: Optional[List[str]] = None,
         messages: Optional[List[ReceivedMessage]] = None,
-        project_id: Optional[str] = None,
         retry: Optional[Retry] = None,
         timeout: Optional[float] = None,
         metadata: Optional[Sequence[Tuple[str, str]]] = None,
@@ -550,10 +547,6 @@ class PubSubHook(GoogleBaseHook):
         :param metadata: (Optional) Additional metadata that is provided to the method.
         :type metadata: Sequence[Tuple[str, str]]]
         """
-
-        if not project_id:
-            raise ValueError("Project ID should be set.")
-
         if ack_ids is not None and messages is None:
             pass
         elif ack_ids is None and messages is not None:

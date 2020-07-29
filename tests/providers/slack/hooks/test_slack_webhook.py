@@ -60,16 +60,19 @@ class TestSlackWebhookHook(unittest.TestCase):
         db.merge_conn(
             Connection(
                 conn_id='slack-webhook-default',
+                conn_type='http',
                 extra='{"webhook_token": "your_token_here"}')
         )
         db.merge_conn(
             Connection(
                 conn_id='slack-webhook-url',
+                conn_type='http',
                 host='https://hooks.slack.com/services/T000/B000/XXX')
         )
         db.merge_conn(
             Connection(
                 conn_id='slack-webhook-host',
+                conn_type='http',
                 host='https://hooks.slack.com/services/T000/')
         )
 
@@ -154,7 +157,3 @@ class TestSlackWebhookHook(unittest.TestCase):
             data=mock.ANY
         )
         mock_request.reset_mock()
-
-
-if __name__ == '__main__':
-    unittest.main()

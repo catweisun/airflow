@@ -55,6 +55,7 @@ class TestImapHook(unittest.TestCase):
         db.merge_conn(
             Connection(
                 conn_id='imap_default',
+                conn_type='imap',
                 host='imap_server_address',
                 login='imap_user',
                 password='imap_password'
@@ -303,7 +304,3 @@ class TestImapHook(unittest.TestCase):
 
         mock_imaplib.IMAP4_SSL.return_value.search.assert_called_once_with(None, mail_filter)
         assert mock_open_method.call_count == 1
-
-
-if __name__ == '__main__':
-    unittest.main()

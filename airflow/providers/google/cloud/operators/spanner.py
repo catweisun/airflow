@@ -31,6 +31,10 @@ class SpannerDeployInstanceOperator(BaseOperator):
     Creates a new Cloud Spanner instance, or if an instance with the same instance_id
     exists in the specified project, updates the Cloud Spanner instance.
 
+    .. seealso::
+        For more information on how to use this operator, take a look at the guide:
+        :ref:`howto/operator:SpannerDeployInstanceOperator`
+
     :param instance_id: Cloud Spanner instance ID.
     :type instance_id: str
     :param configuration_name:  The name of the Cloud Spanner instance configuration
@@ -57,9 +61,9 @@ class SpannerDeployInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  configuration_name: str,
-                 node_count: str,
+                 node_count: int,
                  display_name: str,
                  project_id: Optional[str] = None,
                  gcp_conn_id: str = 'google_cloud_default',
@@ -118,7 +122,7 @@ class SpannerDeleteInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  project_id: Optional[str] = None,
                  gcp_conn_id: str = 'google_cloud_default',
                  *args, **kwargs) -> None:
@@ -174,7 +178,7 @@ class SpannerQueryDatabaseInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  database_id: str,
                  query: Union[str, List[str]],
                  project_id: Optional[str] = None,
@@ -257,7 +261,7 @@ class SpannerDeployDatabaseInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  database_id: str,
                  ddl_statements: List[str],
                  project_id: Optional[str] = None,
@@ -331,7 +335,7 @@ class SpannerUpdateDatabaseInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  database_id: str,
                  ddl_statements: List[str],
                  project_id: Optional[str] = None,
@@ -403,7 +407,7 @@ class SpannerDeleteDatabaseInstanceOperator(BaseOperator):
 
     @apply_defaults
     def __init__(self,
-                 instance_id: int,
+                 instance_id: str,
                  database_id: str,
                  project_id: Optional[str] = None,
                  gcp_conn_id: str = 'google_cloud_default',

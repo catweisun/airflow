@@ -59,14 +59,18 @@ class ECSProtocol(Protocol):
 
 class ECSOperator(BaseOperator):  # pylint: disable=too-many-instance-attributes
     """
-    Execute a task on AWS EC2 Container Service
+    Execute a task on AWS ECS (Elastic Container Service)
 
-    :param task_definition: the task definition name on EC2 Container Service
+    .. seealso::
+        For more information on how to use this operator, take a look at the guide:
+        :ref:`howto/operator:ECSOperator`
+
+    :param task_definition: the task definition name on Elastic Container Service
     :type task_definition: str
-    :param cluster: the cluster name on EC2 Container Service
+    :param cluster: the cluster name on Elastic Container Service
     :type cluster: str
     :param overrides: the same parameter that boto3 will receive (templated):
-        http://boto3.readthedocs.org/en/latest/reference/services/ecs.html#ECS.Client.run_task
+        https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.run_task
     :type overrides: dict
     :param aws_conn_id: connection id of AWS credentials / region name. If None,
         credential boto3 strategy will be used
@@ -113,7 +117,7 @@ class ECSOperator(BaseOperator):  # pylint: disable=too-many-instance-attributes
                  aws_conn_id=None, region_name=None, launch_type='EC2',
                  group=None, placement_constraints=None, platform_version='LATEST',
                  network_configuration=None, tags=None, awslogs_group=None,
-                 awslogs_region=None, awslogs_stream_prefix=None, **kwargs):
+                 awslogs_region=None, awslogs_stream_prefix=None, propagate_tags=None, **kwargs):
         super().__init__(**kwargs)
 
         self.aws_conn_id = aws_conn_id
@@ -131,6 +135,7 @@ class ECSOperator(BaseOperator):  # pylint: disable=too-many-instance-attributes
         self.awslogs_group = awslogs_group
         self.awslogs_stream_prefix = awslogs_stream_prefix
         self.awslogs_region = awslogs_region
+        self.propagate_tags = propagate_tags
 
         if self.awslogs_region is None:
             self.awslogs_region = region_name
@@ -151,11 +156,12 @@ class ECSOperator(BaseOperator):  # pylint: disable=too-many-instance-attributes
             'taskDefinition': self.task_definition,
             'overrides': self.overrides,
             'startedBy': self.owner,
-            'launchType': self.launch_type,
         }
 
-        if self.launch_type == 'FARGATE':
-            run_opts['platformVersion'] = self.platform_version
+        if self.launch_type:
+            run_opts['launchType'] = self.launch_type
+            if self.launch_type == 'FARGATE':
+                run_opts['platformVersion'] = self.platform_version
         if self.group is not None:
             run_opts['group'] = self.group
         if self.placement_constraints is not None:
@@ -164,6 +170,8 @@ class ECSOperator(BaseOperator):  # pylint: disable=too-many-instance-attributes
             run_opts['networkConfiguration'] = self.network_configuration
         if self.tags is not None:
             run_opts['tags'] = [{'key': k, 'value': v} for (k, v) in self.tags.items()]
+        if self.propagate_tags is not None:
+            run_opts['propagateTags'] = self.propagate_tags
 
         response = self.client.run_task(**run_opts)
 

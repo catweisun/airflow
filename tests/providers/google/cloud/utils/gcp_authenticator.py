@@ -35,6 +35,7 @@ GCP_CLOUD_BUILD_KEY = 'gcp_cloud_build.json'
 GCP_CLOUDSQL_KEY = 'gcp_cloudsql.json'
 GCP_COMPUTE_KEY = 'gcp_compute.json'
 GCP_DATAFLOW_KEY = 'gcp_dataflow.json'
+GCP_DATAFUSION_KEY = 'gcp_datafusion.json'
 GCP_DATAPROC_KEY = 'gcp_dataproc.json'
 GCP_DATASTORE_KEY = 'gcp_datastore.json'
 GCP_DLP_KEY = 'gcp_dlp.json'
@@ -42,9 +43,12 @@ GCP_FUNCTION_KEY = 'gcp_function.json'
 GCP_GCS_KEY = 'gcp_gcs.json'
 GCP_GCS_TRANSFER_KEY = 'gcp_gcs_transfer.json'
 GCP_GKE_KEY = "gcp_gke.json"
+GCP_LIFE_SCIENCES_KEY = 'gcp_life_sciences.json'
 GCP_MEMORYSTORE = 'gcp_memorystore.json'
 GCP_PUBSUB_KEY = "gcp_pubsub.json"
+GCP_SECRET_MANAGER_KEY = 'gcp_secret_manager.json'
 GCP_SPANNER_KEY = 'gcp_spanner.json'
+GCP_STACKDDRIVER = 'gcp_stackdriver.json'
 GCP_TASKS_KEY = 'gcp_tasks.json'
 GMP_KEY = 'gmp.json'
 G_FIREBASE_KEY = 'g_firebase.json'
@@ -96,7 +100,7 @@ class GcpAuthenticator(LoggingCommandExecutor):
             conn.extra = json.dumps(extras)
             session.commit()
         except BaseException as ex:
-            self.log.info('Airflow DB Session error: %s', str(ex))
+            self.log.error('Airflow DB Session error: %s', str(ex))
             session.rollback()
             raise
         finally:
@@ -122,7 +126,7 @@ class GcpAuthenticator(LoggingCommandExecutor):
             conn.extra = json.dumps(extras)
             session.commit()
         except BaseException as ex:
-            self.log.info('Airflow DB Session error: %s', str(ex))
+            self.log.error('Airflow DB Session error: %s', str(ex))
             session.rollback()
             raise
         finally:
@@ -146,11 +150,11 @@ class GcpAuthenticator(LoggingCommandExecutor):
             self.log.info("The %s is not a directory", gcp_config_dir)
         key_dir = os.path.join(gcp_config_dir, "keys")
         if not os.path.isdir(key_dir):
-            self.log.info("The %s is not a directory", key_dir)
+            self.log.error("The %s is not a directory", key_dir)
             return
         key_path = os.path.join(key_dir, self.gcp_key)
         if not os.path.isfile(key_path):
-            self.log.info("The %s file is missing", key_path)
+            self.log.error("The %s file is missing", key_path)
         self.full_key_path = key_path
 
     def _validate_key_set(self):
